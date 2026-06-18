@@ -2,34 +2,43 @@
   "name": "wupi",
   "version": "0.1.0",
   "private": true,
-  "main": "electron/main.ts",
+  "main": "electron/main.js",
+  "description": "Wupi - Next.js + Electron app",
+  "author": "Pratham",
   "scripts": {
     "dev:next": "next dev",
     "dev:electron": "wait-on http://localhost:3000 && electron -r tsx/cjs electron/main.ts",
     "dev": "concurrently \"bun run dev:next\" \"bun run dev:electron\"",
 
-    "build:next": "next build",
+    "build:next": "next build && bun -e \"require('fs').cpSync('.next/static', '.next/standalone/.next/static', {recursive: true})\"",
+    "build:electron": "tsc -p tsconfig.electron.json",
     "start:next": "next start -p 3000",
 
-    "build": "bun run build:next",
+    "build": "bun run build:next && bun run build:electron && electron-builder",
 
     "start": "concurrently \"bun run start:next\" \"electron .\""
   },
   "build": {
     "appId": "xyz.prathambuilds.wupi",
     "files": [
-      "electron/**/*",
+      "electron/**/*.js",
       ".next/standalone/**/*",
-      ".next/static/**/*",
       "package.json"
     ],
-    "asar": true
+    "asar": true,
+    "asarUnpack": [
+      ".next/standalone/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "extraMetadata": {
+      "type": "module"
+    }
   },
   "dependencies": {
     "concurrently": "^10.0.3",
     "cross-env": "^10.1.0",
-    "electron": "^42.4.0",
-    "electron-builder": "^26.15.3",
     "electron-is-dev": "^3.0.1",
     "next": "16.2.9",
     "react": "19.2.4",
@@ -41,6 +50,8 @@
     "@types/node": "^25.9.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
