@@ -2,13 +2,14 @@
   "name": "wupi",
   "version": "0.1.0",
   "private": true,
-  "main": "electron/main.js",
+  "main": "electron-dist/main.js",
+  "type": "module",
   "description": "Wupi - Next.js + Electron app",
   "author": "Pratham",
   "scripts": {
     "dev:next": "next dev",
     "dev:electron": "wait-on http://localhost:3000 && electron -r tsx/cjs electron/main.ts",
-    "dev": "concurrently \"bun run dev:next\" \"bun run dev:electron\"",
+    "dev": "concurrently --kill-others \"bun run dev:next\" \"bun run dev:electron\"",
 
     "build:next": "next build && node -e \"require('fs').cpSync('.next/static', '.next/standalone/.next/static', {recursive: true})\" && node -e \"require('fs').cpSync('public', '.next/standalone/public', {recursive: true})\"",
     "build:electron": "tsc -p tsconfig.electron.json",
@@ -21,7 +22,7 @@
   "build": {
     "appId": "xyz.prathambuilds.wupi",
     "files": [
-      "electron/**/*.js",
+      "electron-dist/**/*.js",
       ".next/standalone/**/*",
       "package.json"
     ],

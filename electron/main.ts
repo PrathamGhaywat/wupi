@@ -1,14 +1,17 @@
 import { app, BrowserWindow } from "electron";
 import path from "path";
-import { fileURLToPath } from "url";
+import fs from "fs";
 import { spawn, ChildProcess } from "child_process";
+import isDev from "electron-is-dev";
 
-// In production (asar-packed), __dirname points inside the asar which
-// regular `node` can't read. Resolve to the unpacked counterpart instead.
+// In production (asar-packed), resolve to the unpacked counterpart.
+// In dev, app.getAppPath() returns the electron/ dir — go up to project root.
 const appPath = app.getAppPath();
 const basePath = appPath.endsWith(".asar")
   ? appPath.replace(".asar", ".asar.unpacked")
-  : path.dirname(fileURLToPath(import.meta.url));
+  : fs.existsSync(path.join(appPath, ".next"))
+    ? appPath
+    : path.dirname(appPath);
 
 let nextProcess: ChildProcess | null;
 
@@ -17,7 +20,12 @@ function startNext() {
 
   nextProcess = spawn("node", [serverPath], {
     env: { ...process.env, PORT: "3000" },
-    stdio: "inherit"
+    stdio: "inherit",
+    detached: true
+  });
+
+  nextProcess.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") nextProcess = null;
   });
 }
 
@@ -31,11 +39,15 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  startNext();
+  if (!isDev) {
+    startNext();
+  }
   createWindow();
 });
 
 app.on("window-all-closed", () => {
-  if (nextProcess) nextProcess.kill();
+  if (nextProcess && nextProcess.pid) {
+    process.kill(-nextProcess.pid);
+  }
   app.quit();
 });
