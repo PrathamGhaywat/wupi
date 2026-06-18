@@ -10,11 +10,11 @@
     "dev:electron": "wait-on http://localhost:3000 && electron -r tsx/cjs electron/main.ts",
     "dev": "concurrently \"bun run dev:next\" \"bun run dev:electron\"",
 
-    "build:next": "next build && bun -e \"require('fs').cpSync('.next/static', '.next/standalone/.next/static', {recursive: true})\"",
+    "build:next": "next build && node -e \"require('fs').cpSync('.next/static', '.next/standalone/.next/static', {recursive: true})\" && node -e \"require('fs').cpSync('public', '.next/standalone/public', {recursive: true})\"",
     "build:electron": "tsc -p tsconfig.electron.json",
     "start:next": "next start -p 3000",
 
-    "build": "bun run build:next && bun run build:electron && electron-builder",
+    "build": "npm run build:next && npm run build:electron && npx electron-builder",
 
     "start": "concurrently \"bun run start:next\" \"electron .\""
   },
@@ -29,6 +29,9 @@
     "asarUnpack": [
       ".next/standalone/**/*"
     ],
+    "win": {
+      "signAndEditExecutable": false
+    },
     "directories": {
       "output": "release"
     },
