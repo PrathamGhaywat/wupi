@@ -1,29 +1,24 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { MessageBubble, StreamingBubble } from "@/components/chat/MessageBubble";
 import { DynamicSlogan } from "@/components/header/DynamicSlogan";
 import { ChevronDown } from "lucide-react";
+import { useStreamingSnapshot } from "@/lib/streaming-store";
 import type { WupiSessionState } from "@/app/types";
 
 interface ChatAreaProps {
   state: WupiSessionState | null;
-  streamingText: string;
-  streamingThinking: string;
-  activeTools: Record<string, { name: string; done: boolean; isError: boolean }>;
   ready: boolean;
   hasModel: boolean;
   hasElectron: boolean;
   error: string | null;
 }
 
-export function ChatArea({
+export const ChatArea = memo(function ChatArea({
   state,
-  streamingText,
-  streamingThinking,
-  activeTools,
   ready,
   hasModel,
   hasElectron,
@@ -32,19 +27,22 @@ export function ChatArea({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const snapshot = useStreamingSnapshot();
 
   const scrollToBottom = (smooth = true) => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
-      behavior: smooth ? "smooth" : "instant",
+      behavior: smooth ? "smooth" : "auto",
     });
   };
 
   useEffect(() => {
-    if (isAtBottom) {
-      scrollToBottom(true);
-    }
-  }, [state, streamingText, streamingThinking, activeTools, isAtBottom]);
+    if (!isAtBottom) return;
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: snapshot.isStreaming ? "auto" : "smooth",
+    });
+  }, [snapshot.text, snapshot.thinking, snapshot.activeTools, state, isAtBottom, snapshot.isStreaming]);
 
   const handleScroll = () => {
     const el = scrollRef.current;
@@ -54,8 +52,10 @@ export function ChatArea({
     setShowScrollButton(!atBottom);
   };
 
-  const isStreaming = state?.isStreaming ?? false;
-  const hasStreamingContent = streamingText || streamingThinking || Object.keys(activeTools).length > 0;
+  const hasStreamingContent =
+    snapshot.text ||
+    snapshot.thinking ||
+    Object.keys(snapshot.activeTools).length > 0;
 
   return (
     <div className="flex-1 relative flex flex-col min-h-0">
@@ -81,7 +81,7 @@ export function ChatArea({
             </Alert>
           ) : null}
 
-          {hasElectron && hasModel && (state?.messages.length ?? 0) === 0 && !isStreaming ? (
+          {hasElectron && hasModel && (state?.messages.length ?? 0) === 0 && !snapshot.isStreaming ? (
             <div className="flex flex-col items-center justify-center min-h-[300px] text-center">
               <div className="mb-4 text-6xl">🜂</div>
               <h2 className="text-2xl font-bold text-foreground mb-2">Wupi</h2>
@@ -98,9 +98,9 @@ export function ChatArea({
 
           {hasStreamingContent ? (
             <StreamingBubble
-              text={streamingText}
-              thinking={streamingThinking}
-              tools={activeTools}
+              text={snapshot.text}
+              thinking={snapshot.thinking}
+              tools={snapshot.activeTools}
             />
           ) : null}
         </div>
@@ -125,4 +125,4 @@ export function ChatArea({
       ) : null}
     </div>
   );
-}
+});

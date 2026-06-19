@@ -44,3 +44,6 @@ next-env.d.ts
 dist
 release
 electron-dist
+
+# my personal todo list 
+todo.md

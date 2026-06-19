@@ -10,9 +10,7 @@ interface InputAreaProps {
   isStreaming: boolean;
   hasModel: boolean;
   hasElectron: boolean;
-  input: string;
-  onInputChange: (value: string) => void;
-  onSend: () => void;
+  onSend: (text: string) => void;
   onAbort: () => void;
 }
 
@@ -20,15 +18,22 @@ export function InputArea({
   isStreaming,
   hasModel,
   hasElectron,
-  input,
-  onInputChange,
   onSend,
   onAbort,
 }: InputAreaProps) {
+  const [value, setValue] = useState("");
+
+  const handleSend = () => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    onSend(trimmed);
+    setValue("");
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      handleSend();
     }
   };
 
@@ -36,8 +41,8 @@ export function InputArea({
     <div className="border-t border-border p-4">
       <div className="mx-auto max-w-3xl relative">
         <Textarea
-          value={input}
-          onChange={(e) => onInputChange(e.target.value)}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
             hasModel
@@ -66,10 +71,10 @@ export function InputArea({
               size="icon"
               className={cn(
                 "size-8 rounded-lg transition-all",
-                !input.trim() && "opacity-50"
+                !value.trim() && "opacity-50"
               )}
-              onClick={onSend}
-              disabled={!input.trim() || !hasModel || !hasElectron}
+              onClick={handleSend}
+              disabled={!value.trim() || !hasModel || !hasElectron}
               aria-label="Send message"
             >
               <ArrowUp className="size-4" />

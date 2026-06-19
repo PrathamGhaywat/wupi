@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { ToolChip } from "@/components/chat/ToolChip";
 import { cn } from "@/lib/utils";
 import type { WupiMessage, WupiAssistantMessage, WupiMessageContent } from "@/app/types";
@@ -49,7 +50,7 @@ interface MessageBubbleProps {
   message: WupiMessage;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({ message }: MessageBubbleProps) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -112,7 +113,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   }
 
   return null;
-}
+});
 
 interface StreamingBubbleProps {
   text: string;
@@ -120,7 +121,7 @@ interface StreamingBubbleProps {
   tools: Record<string, { name: string; done: boolean; isError: boolean }>;
 }
 
-export function StreamingBubble({ text, thinking, tools }: StreamingBubbleProps) {
+export const StreamingBubble = memo(function StreamingBubble({ text, thinking, tools }: StreamingBubbleProps) {
   return (
     <div className="flex flex-col gap-2">
       {thinking ? (
@@ -152,4 +153,4 @@ export function StreamingBubble({ text, thinking, tools }: StreamingBubbleProps)
       ) : null}
     </div>
   );
-}
+});

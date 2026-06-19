@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/sidebar/Sidebar";
@@ -9,6 +9,11 @@ import { InputArea } from "@/components/chat/InputArea";
 import { AppLoader } from "@/components/loader/AppLoader";
 import { DynamicSlogan } from "@/components/header/DynamicSlogan";
 import SettingsModal from "./SettingsModal";
+import {
+  dispatchStreamingEvent,
+  resetStreamingStore,
+  useStreamingSelector,
+} from "@/lib/streaming-store";
 import type {
   WupiAgentEvent,
   WupiMessage,
@@ -21,80 +26,30 @@ export default function Home() {
   const [models, setModels] = useState<WupiModelInfo[]>([]);
   const [providers, setProviders] = useState<WupiProviderInfo[]>([]);
   const [state, setState] = useState<WupiSessionState | null>(null);
-  const [input, setInput] = useState("");
-  const [streamingText, setStreamingText] = useState("");
-  const [streamingThinking, setStreamingThinking] = useState("");
-  const [activeTools, setActiveTools] = useState<
-    Record<string, { name: string; done: boolean; isError: boolean }>
-  >({});
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ready, setReady] = useState(false);
-  const [streamCount, setStreamCount] = useState(0);
   const hasElectron = useSyncExternalStore(
     () => () => {},
     () => !!window.electronAPI,
     () => false
   );
-  const streamCountRef = useRef(streamCount);
-  streamCountRef.current = streamCount;
+  const isStreaming = useStreamingSelector((s) => s.isStreaming);
 
   useEffect(() => {
     const api = window.electronAPI;
     if (!api) return;
 
     api.onAgentEvent((event: WupiAgentEvent) => {
-      switch (event.type) {
-        case "agent_start":
-          setStreamCount(1);
-          setStreamingText("");
-          setStreamingThinking("");
-          setActiveTools({});
-          setError(null);
-          break;
-        case "agent_end":
-        case "agent_error":
-          setStreamCount(0);
-          break;
-        case "message_update": {
-          const e = event as { assistantMessageEvent?: { type: string; delta?: string } };
-          const sub = e.assistantMessageEvent;
-          if (sub?.type === "text_delta" && sub.delta) {
-            setStreamingText((prev) => prev + sub.delta);
-            setStreamCount((prev) => prev + 1);
-          } else if (sub?.type === "thinking_delta" && sub.delta) {
-            setStreamingThinking((prev) => prev + sub.delta);
-            setStreamCount((prev) => prev + 1);
-          } else if (sub?.type === "start") {
-            setStreamCount((prev) => prev + 1);
-          }
-          break;
-        }
-        case "tool_execution_start": {
-          const e = event as unknown as { toolCallId: string; toolName: string };
-          setActiveTools((prev) => ({
-            ...prev,
-            [e.toolCallId]: { name: e.toolName, done: false, isError: false },
-          }));
-          break;
-        }
-        case "tool_execution_end": {
-          const e = event as unknown as { toolCallId: string; toolName: string; isError: boolean };
-          setActiveTools((prev) => ({
-            ...prev,
-            [e.toolCallId]: { name: e.toolName, done: true, isError: e.isError },
-          }));
-          break;
-        }
+      if (event.type === "agent_start") {
+        setError(null);
       }
+      dispatchStreamingEvent(event);
     });
 
     api.onAgentState((s) => {
       setState(s);
-      setStreamCount(0);
-      setStreamingText("");
-      setStreamingThinking("");
-      setActiveTools({});
+      resetStreamingStore();
       setReady(true);
     });
     api.onAgentModels(setModels);
@@ -114,35 +69,21 @@ export default function Home() {
       .then((s) => {
         if (s) {
           setState(s);
-          setStreamCount(s.isStreaming ? 1 : 0);
         }
         setReady(true);
       })
       .catch((e) => console.error("agentGetState failed:", e));
   }, []);
 
-  // Fallback: if no streaming activity for 3 seconds, assume done
-  useEffect(() => {
-    if (streamCount <= 0) return;
-    const timer = setTimeout(() => setStreamCount(0), 3000);
-    return () => clearTimeout(timer);
-  }, [streamCount]);
-
-  const isStreaming = streamCount > 0;
   const hasModel = !!state?.model;
 
-  async function send() {
-    const text = input.trim();
-    if (!text || isStreaming) return;
+  async function send(text: string) {
+    if (!text.trim() || isStreaming) return;
     if (!hasModel) {
       setError("Select a model first. If none available, add an API key in Settings.");
       return;
     }
-    setInput("");
     setError(null);
-    setStreamingText("");
-    setStreamingThinking("");
-    setActiveTools({});
     const optimistic: WupiMessage = {
       role: "user",
       content: text,
@@ -163,11 +104,8 @@ export default function Home() {
   }
 
   async function abort() {
+    resetStreamingStore();
     await window.electronAPI.agentAbort();
-    setStreamCount(0);
-    setStreamingText("");
-    setStreamingThinking("");
-    setActiveTools({});
   }
 
   async function pickModel(provider: string, id: string) {
@@ -247,9 +185,6 @@ export default function Home() {
 
         <ChatArea
           state={state}
-          streamingText={streamingText}
-          streamingThinking={streamingThinking}
-          activeTools={activeTools}
           ready={ready}
           hasModel={hasModel}
           hasElectron={hasElectron}
@@ -260,8 +195,6 @@ export default function Home() {
           isStreaming={isStreaming}
           hasModel={hasModel}
           hasElectron={hasElectron}
-          input={input}
-          onInputChange={setInput}
           onSend={send}
           onAbort={abort}
         />
