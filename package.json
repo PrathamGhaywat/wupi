@@ -8,21 +8,19 @@
   "author": "Pratham",
   "scripts": {
     "dev:next": "next dev",
-    "dev:electron": "wait-on http://localhost:3000 && electron -r tsx/cjs electron/main.ts",
+    "dev:electron": "wait-on http://localhost:3000 && tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && node -e \"require('fs').renameSync('electron-dist/preload.js','electron-dist/preload.cjs')\" && electron -r tsx/cjs electron/main.ts",
     "dev": "concurrently --kill-others \"bun run dev:next\" \"bun run dev:electron\"",
-
     "build:next": "next build && node -e \"require('fs').cpSync('.next/static', '.next/standalone/.next/static', {recursive: true})\" && node -e \"require('fs').cpSync('public', '.next/standalone/public', {recursive: true})\"",
-    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:electron": "tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && node -e \"require('fs').renameSync('electron-dist/preload.js','electron-dist/preload.cjs')\"",
     "start:next": "next start -p 3000",
-
     "build": "npm run build:next && npm run build:electron && npx electron-builder",
-
     "start": "concurrently \"bun run start:next\" \"electron .\""
   },
   "build": {
     "appId": "xyz.prathambuilds.wupi",
     "files": [
       "electron-dist/**/*.js",
+      "electron-dist/**/*.cjs",
       ".next/standalone/**/*",
       "package.json"
     ],
@@ -41,6 +39,8 @@
     }
   },
   "dependencies": {
+    "@earendil-works/pi-ai": "^0.79.7",
+    "@earendil-works/pi-coding-agent": "^0.79.7",
     "concurrently": "^10.0.3",
     "cross-env": "^10.1.0",
     "electron-is-dev": "^3.0.1",

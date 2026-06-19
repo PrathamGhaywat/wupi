@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Build output directories (gitignored).
+    "dist/**",
+    "electron-dist/**",
+    "release/**",
   ]),
 ]);
 

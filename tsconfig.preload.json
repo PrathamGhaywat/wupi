@@ -1,18 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "outDir": "electron-dist",
     "rootDir": "electron",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+"forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "6.0",
     "resolveJsonModule": true,
     "declaration": false,
     "sourceMap": false
   },
-  "include": ["electron/**/*.ts"],
-  "exclude": ["node_modules", "electron/preload.ts"]
+  "include": ["electron/preload.ts"],
+  "exclude": ["node_modules"]
 }
