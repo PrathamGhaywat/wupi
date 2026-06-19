@@ -116,4 +116,5 @@ CSS-first config. No `tailwind.config.*` file. `app/globals.css` uses `@import "
 
 - No comments in code unless explicitly asked.
 - `CLAUDE.md` just contains `@AGENTS.md`.
-- `.opencode/skills/` = OpenCode dev skills (registered in `opencode.json`). `.agents/` = runtime pi agent discovery — don't mix.
+- `./skills/` = Contains useful skills that can be loaded into the agent at runtime. 
+- `./pi-docs-md/` = Markdown reference docs for the pi SDK and related concepts, generated from the original TypeScript source. Not meant to be edited directly. Also contains example files that can be referred to for usage patterns. (see ./pi-docs-md/sdk/ for runnable examples)
