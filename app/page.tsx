@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/sidebar/Sidebar";
@@ -30,11 +30,14 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ready, setReady] = useState(false);
+  const [streamCount, setStreamCount] = useState(0);
   const hasElectron = useSyncExternalStore(
     () => () => {},
     () => !!window.electronAPI,
     () => false
   );
+  const streamCountRef = useRef(streamCount);
+  streamCountRef.current = streamCount;
 
   useEffect(() => {
     const api = window.electronAPI;
@@ -43,18 +46,27 @@ export default function Home() {
     api.onAgentEvent((event: WupiAgentEvent) => {
       switch (event.type) {
         case "agent_start":
+          setStreamCount(1);
           setStreamingText("");
           setStreamingThinking("");
           setActiveTools({});
           setError(null);
+          break;
+        case "agent_end":
+        case "agent_error":
+          setStreamCount(0);
           break;
         case "message_update": {
           const e = event as { assistantMessageEvent?: { type: string; delta?: string } };
           const sub = e.assistantMessageEvent;
           if (sub?.type === "text_delta" && sub.delta) {
             setStreamingText((prev) => prev + sub.delta);
+            setStreamCount((prev) => prev + 1);
           } else if (sub?.type === "thinking_delta" && sub.delta) {
             setStreamingThinking((prev) => prev + sub.delta);
+            setStreamCount((prev) => prev + 1);
+          } else if (sub?.type === "start") {
+            setStreamCount((prev) => prev + 1);
           }
           break;
         }
@@ -79,6 +91,7 @@ export default function Home() {
 
     api.onAgentState((s) => {
       setState(s);
+      setStreamCount(0);
       setStreamingText("");
       setStreamingThinking("");
       setActiveTools({});
@@ -99,13 +112,23 @@ export default function Home() {
     api
       .agentGetState()
       .then((s) => {
-        if (s) setState(s);
+        if (s) {
+          setState(s);
+          setStreamCount(s.isStreaming ? 1 : 0);
+        }
         setReady(true);
       })
       .catch((e) => console.error("agentGetState failed:", e));
   }, []);
 
-  const isStreaming = state?.isStreaming ?? false;
+  // Fallback: if no streaming activity for 3 seconds, assume done
+  useEffect(() => {
+    if (streamCount <= 0) return;
+    const timer = setTimeout(() => setStreamCount(0), 3000);
+    return () => clearTimeout(timer);
+  }, [streamCount]);
+
+  const isStreaming = streamCount > 0;
   const hasModel = !!state?.model;
 
   async function send() {
@@ -141,6 +164,10 @@ export default function Home() {
 
   async function abort() {
     await window.electronAPI.agentAbort();
+    setStreamCount(0);
+    setStreamingText("");
+    setStreamingThinking("");
+    setActiveTools({});
   }
 
   async function pickModel(provider: string, id: string) {
