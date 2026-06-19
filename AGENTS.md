@@ -8,81 +8,60 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 Personal AI agent desktop app: Next.js 16 (App Router) UI in Electron 42, powered by `@earendil-works/pi-coding-agent`. Agent runtime lives in the Electron main process (not a remote server).
 
-## Stack
-
-Next.js 16.2.9 · React 19 · Tailwind v4 · TypeScript 6 · Electron 42 · Bun · ESLint 9 flat config.
-
 ## Commands
 
 ```bash
 bun run dev              # Next dev (:3000) + Electron concurrently
 bun run dev:next         # Next dev only
-bun run dev:electron     # compiles main + preload (.cjs), then runs Electron via tsx
-bun run build            # build:next -> build:electron -> electron-builder (output: release/)
-tsc -p tsconfig.json     # typecheck Next (browser)
+bun run dev:electron     # compile main + preload (.cjs), then Electron via tsx
+bun run build            # build:next → build:electron → electron-builder (output: release/)
+tsc -p tsconfig.json     # typecheck Next app only (browser, noEmit)
 tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && node -e "require('fs').renameSync('electron-dist/preload.js','electron-dist/preload.cjs')"
                           # typecheck + compile Electron + preload
-eslint .                 # flat config in eslint.config.mjs: next/core-web-vitals + next/typescript
+eslint .                 # flat config at eslint.config.mjs
 ```
 
-No `lint`/`typecheck`/`test` scripts exist — run the above manually.
+No `lint`/`typecheck`/`test` scripts exist. No test infrastructure exists in the repo.
 
-## Two TypeScript projects — do not mix
+## Architecture: two runtimes, three tsconfigs
 
-- `tsconfig.json` — Next app (`app/**`, `@/*` path alias → repo root). `noEmit`. Browser-only.
-- `tsconfig.electron.json` — Electron (`electron/**`, excluding `electron/preload.ts`). Emits ESM to `electron-dist/`. Node-only.
-- `tsconfig.preload.json` — compiles only `electron/preload.ts` as CommonJS (`.js` → renamed to `.cjs`).
+- `tsconfig.json` — Next app (`app/**`, `@/*` → repo root). Browser-only. `noEmit`.
+- `tsconfig.electron.json` — Electron main process (`electron/**`, **excluding** `electron/preload.ts`). Outputs ESM to `electron-dist/`. Node-only.
+- `tsconfig.preload.json` — only `electron/preload.ts`. Outputs CommonJS (`.js` → manually renamed to `.cjs`). Preload + sandbox require CJS.
 
-Electron APIs (`fs`, `child_process`, `app`, `BrowserWindow`, `ipcMain`) are importable ONLY in `electron/`. The renderer bridge is `electron/preload.ts` → `window.electronAPI` (typed in `global.d.ts`).
+**Hard boundary:** Node builtins (`fs`, `child_process`, `app`, `BrowserWindow`, `ipcMain`) are importable only in `electron/`. The renderer talks to the main process exclusively through `window.electronAPI` (typed in `global.d.ts`, implemented in `electron/preload.ts`). Keep `global.d.ts` in sync with `preload.ts`.
 
-## Preload must be CommonJS
+## Agent runtime: `electron/main.ts` (~470 lines)
 
-`package.json` has `"type": "module"`, so all `.js` files are treated as ESM. But **Electron preload scripts require CommonJS** — the sandboxed renderer doesn't support ESM. The preload is compiled separately by `tsconfig.preload.json` (`module: "commonjs"`) and renamed from `.js` to `.cjs` (`.cjs` forces CommonJS).
+Single file (no separate `agent.ts`) — avoids ESM relative import extension conflicts between tsx (dev) and tsc (prod).
 
-Both `dev:electron` and `build:electron` scripts do this: `tsc -p tsconfig.preload.json && rename preload.js → preload.cjs`.
+- `AuthStorage.create(AUTH_PATH)` — credentials at `~/.wupi/auth.json`
+- `ModelRegistry.create(authStorage, MODELS_PATH)` — 980+ models across 35 providers, loaded synchronously in constructor
+- `SessionManager.inMemory()` — ephemeral, no persistence
 
-## Agent runtime
-
-All agent logic lives in `electron/main.ts` (~470 lines). Inlined (no separate `agent.ts` file) to avoid ESM relative import extension conflicts between tsx (dev) and tsc (prod). Key components:
-
-- `AuthStorage.create(AUTH_PATH)` — persists credentials to `~/.wupi/auth.json`
-- `ModelRegistry.create(authStorage, MODELS_PATH)` — 980+ built-in models across 35 providers, loaded synchronously in constructor
-- `SessionManager.inMemory()` — conversation lost on restart (v1 simplification)
-- `authStorage.login(providerId, callbacks)` — OAuth flows (device code for GitHub Copilot/OpenAI Codex, PKCE for Anthropic)
+Streaming events flow: SDK subscription → `eventSink` (set to `forwardEvent`) → `webContents.send("agent:event", ...)`. On `agent_end`, main also sends `agent:state`.
 
 ## Config directory: `~/.wupi/`
 
-- `auth.json` — stored API keys and OAuth tokens
-- `.env` — loaded at startup by `loadDotenv()`; set keys as `ANTHROPIC_API_KEY=sk-...`
-- `models.json` — model registry (generated)
+`auth.json` (keys/tokens), `.env` (loaded at startup, e.g. `ANTHROPIC_API_KEY=sk-...`), `models.json` (generated model registry).
 
-## IPC bridge
+## Streaming performance: must batch
 
-`electron/preload.ts` via `contextBridge.exposeInMainWorld("electronAPI", ...)`:
+**Never call `useState` per text_delta.** The LLM can emit hundreds of events/second. `page.tsx` dispatches events to `lib/streaming-store.ts` which buffers mutations in a ref and flushes to React at ~60fps via `requestAnimationFrame` + 50ms setTimeout fallback. Consumer components subscribe via `useSyncExternalStore` (`useStreamingSnapshot` / `useStreamingSelector`). Provide `getServerSnapshot` for SSR.
 
-| Method | IPC channel | Purpose |
-|---|---|---|
-| `agentSend` | `agent:send` | Send prompt |
-| `agentAbort` | `agent:abort` | Stop streaming |
-| `agentSetModel` | `agent:setModel` | Select model (provider, modelId) |
-| `agentGetModels` | `agent:getModels` | Returns `{models, providers}` |
-| `authSetApiKey` | `auth:setApiKey` | Save API key |
-| `authLogin` | `auth:login` | Start OAuth login (invoke returns on completion) |
-| `authLoginAbort` | `auth:login:abort` | Cancel OAuth login |
-| `authLoginRespond` | `auth:login:respond` | Reply to interactive OAuth prompt/select |
-| `onAuthLoginEvent` | `auth:login:event` | OAuth step events (deviceCode, authUrl, prompt, select, progress) |
-| `onAgentEvent` | `agent:event` | Raw AgentSessionEvent stream |
-| `onAgentState` | `agent:state` | Snapshot pushed after agent_end |
+When the final state arrives from main (`agent:state`), call `resetStreamingStore()` to clear the buffer so the `StreamingBubble` disappears alongside the new `MessageBubble`.
 
-The `Window.electronAPI` type contract is in `global.d.ts` — keep in sync with `preload.ts`.
+## Input state: keep local in InputArea
+
+`input` state lives inside `InputArea.tsx` (not in `page.tsx`). Keystrokes must not re-render `Home` or `ChatArea`. `ChatArea` is wrapped in `React.memo`. `MessageBubble` is `React.memo`ed.
 
 ## Renderer SSR safety
 
-Pages are `"use client"` but must not access `window.electronAPI` during SSR. Use `useSyncExternalStore` or guard with `typeof window !== "undefined"`. Direct `window.electronAPI.foo()` in render crashes.
+Pages are `"use client"` but `window.electronAPI` is undefined during SSR. Guard with `useSyncExternalStore` or `typeof window !== "undefined"`. Direct `window.electronAPI.foo()` in render crashes.
 
 ## Model IDs
 
-IDs can contain slashes (e.g. `deepseek/deepseek-v4-flash`). UI stores as `provider/modelId` and splits with:
+IDs can contain slashes (e.g. `deepseek/deepseek-v4-flash`). UI stores as `provider/modelId`, splits with:
 ```ts
 const [provider, ...rest] = value.split("/");
 const modelId = rest.join("/");
@@ -90,23 +69,23 @@ const modelId = rest.join("/");
 
 ## Tailwind v4
 
-CSS-first config. No `tailwind.config.*` file. `app/globals.css` uses `@import "tailwindcss"` + `@theme inline { ... }`. Do not create a JS/TS Tailwind config.
+CSS-first config. No `tailwind.config.*`. `app/globals.css` uses `@import "tailwindcss"` + `@theme inline { ... }`. Do not create a JS/TS Tailwind config.
 
 ## Build pipeline
 
-- `build:next`: `next build` (output: `standalone`) → manually copy `.next/static` + `public/` into `.next/standalone/`
+- `build:next`: `next build` (output: `standalone` in `next.config.ts`) → manually copy `.next/static` + `public/` into `.next/standalone/`
 - `build:electron`: compile main (ESM) + preload (CJS, renamed to .cjs)
 - `electron-builder` config inlined in `package.json` (`build` key). `.next/standalone/**` is `asarUnpack`ed.
-- Outputs: `.next/`, `electron-dist/`, `dist/`, `release/` — all gitignored.
+- Outputs: `.next/`, `electron-dist/`, `dist/`, `release/` — gitignored.
 
-## pi SDK reference docs
+## Reference docs
 
-- `pi-docs-md/sdk.md` — core SDK usage
+- `pi-docs-md/sdk.md` — core pi SDK usage
 - `pi-docs-md/sdk/` — runnable example files (01-minimal.ts through 13-session-runtime.ts)
-- `pi-docs-md/rpc.md` — RPC mode (electron-to-child-process)
+- `pi-docs-md/rpc.md` — RPC mode
 - `pi-docs-md/json.md` — JSON-driven agent config
 
-## OpenCode skills (load when relevant)
+## OpenCode skills
 
 - `pi-sdk-integration` — embedding pi SDK, auth, sessions, streaming
 - `wupi-architecture` — Electron+Next two-process split, preload bridge
@@ -115,6 +94,4 @@ CSS-first config. No `tailwind.config.*` file. `app/globals.css` uses `@import "
 ## Conventions
 
 - No comments in code unless explicitly asked.
-- `CLAUDE.md` just contains `@AGENTS.md`.
-- `./skills/` = Contains useful skills that can be loaded into the agent at runtime. 
-- `./pi-docs-md/` = Markdown reference docs for the pi SDK and related concepts, generated from the original TypeScript source. Not meant to be edited directly. Also contains example files that can be referred to for usage patterns. (see ./pi-docs-md/sdk/ for runnable examples)
+- `next.config.ts` sets `output: "standalone"` + `reactStrictMode: true`.
