@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { ToolChip } from "@/components/chat/ToolChip";
+import { Markdown } from "@/components/chat/Markdown";
 import { cn } from "@/lib/utils";
 import type { WupiMessage, WupiAssistantMessage, WupiMessageContent } from "@/app/types";
 
@@ -22,8 +23,8 @@ function AssistantBlocks({ content }: { content: WupiMessageContent[] }) {
   return content.map((b, i) => {
     if (b.type === "text") {
       return (
-        <div key={i} className="whitespace-pre-wrap break-words">
-          {b.text}
+        <div key={i} className="break-words">
+          <Markdown>{b.text}</Markdown>
         </div>
       );
     }
@@ -145,8 +146,8 @@ export const StreamingBubble = memo(function StreamingBubble({ text, thinking, t
 
       {text ? (
         <div className="flex justify-start">
-          <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-bl-sm bg-muted px-4 py-2 text-sm text-foreground">
-            {text}
+          <div className="max-w-[80%] break-words rounded-2xl rounded-bl-sm bg-muted px-4 py-2 text-sm text-foreground">
+            <Markdown>{text}</Markdown>
             <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-foreground/50 align-middle rounded-sm" />
           </div>
         </div>
