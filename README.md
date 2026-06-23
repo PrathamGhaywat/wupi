@@ -89,3 +89,7 @@ Output: `release/` directory with platform installer.
 - **Styling:** Tailwind CSS v4 (CSS-first config), shadcn/ui
 - **Agent SDK:** `@earendil-works/pi-coding-agent`
 - **Package Manager:** Bun
+
+## License
+
+MIT License © 2026 Pratham Ghaywat. See [LICENSE.md](LICENSE.md) for details.
