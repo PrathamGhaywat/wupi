@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/sidebar/Sidebar";
@@ -132,6 +132,11 @@ export default function Home() {
       .catch((e) => console.error("agentGetModels failed:", e));
   }
 
+  const configuredModels = useMemo(
+    () => models.filter((m) => m.configured),
+    [models]
+  );
+
   const currentModelValue = state?.model
     ? `${state.model.provider}/${state.model.id}`
     : "";
@@ -139,7 +144,7 @@ export default function Home() {
   return (
     <>
       <AppSidebar
-        models={models}
+        models={configuredModels}
         currentModel={currentModelValue}
         onModelChange={pickModel}
         disabled={isStreaming}
@@ -162,7 +167,7 @@ export default function Home() {
           </div>
           <div className="flex-1" />
           <select
-            className="max-w-[200px] truncate rounded-lg border border-input bg-background px-2 py-1 text-sm text-foreground"
+            className="max-w-[240px] truncate rounded-lg border border-input bg-background px-2 py-1 text-sm text-foreground"
             value={currentModelValue}
             onChange={(e) => {
               const [provider, ...rest] = e.target.value.split("/");
@@ -173,11 +178,9 @@ export default function Home() {
             <option value="">
               {hasModel ? state?.model?.name : "Select a model…"}
             </option>
-            {models
-              .filter((m) => m.configured)
-              .map((m) => (
+            {configuredModels.map((m) => (
                 <option key={`${m.provider}/${m.id}`} value={`${m.provider}/${m.id}`}>
-                  {m.name}
+                  [{m.providerDisplayName}] {m.name}
                 </option>
               ))}
           </select>

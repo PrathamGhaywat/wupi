@@ -9,17 +9,22 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import type { WupiProviderInfo } from "./types";
 
 interface SettingsModalProps {
@@ -64,6 +69,7 @@ export default function SettingsModal({ providers, onClose, onChanged }: Setting
   const [logStep, setLogStep] = useState<LogStep>({ kind: "idle" });
   const [promptValue, setPromptValue] = useState("");
   const [manualCodeValue, setManualCodeValue] = useState("");
+  const [providerOpen, setProviderOpen] = useState(false);
 
   const api = () => window.electronAPI;
 
@@ -190,36 +196,60 @@ export default function SettingsModal({ providers, onClose, onChanged }: Setting
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-xs font-medium text-muted-foreground">Provider</label>
-            <Select
-              value={effectiveSelected}
-              onValueChange={(v) => {
-                setSelected(v);
-                setKey("");
-                setMsg(null);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {providers.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span className="flex items-center gap-2">
-                        {p.displayName}
-                        <span className="text-xs text-muted-foreground">
-                          ({AUTH_TYPE[p.id] === "oauth" ? "OAuth" : "key"})
-                        </span>
-                        {p.configured ? (
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0">✓</Badge>
-                        ) : null}
-                        <span className="text-xs text-muted-foreground ml-auto">{p.modelCount} models</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            <Popover open={providerOpen} onOpenChange={setProviderOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={providerOpen}
+                  className="w-full justify-between rounded-none px-3 font-normal"
+                >
+                  <span className="truncate">
+                    {current?.displayName ?? "Select a provider…"}
+                  </span>
+                  <ChevronsUpDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search providers…" />
+                  <CommandList>
+                    <CommandEmpty>No provider found.</CommandEmpty>
+                    <CommandGroup>
+                      {providers.map((p) => (
+                        <CommandItem
+                          key={p.id}
+                          value={p.id}
+                          keywords={[p.displayName, p.id]}
+                          onSelect={(v) => {
+                            setSelected(v);
+                            setKey("");
+                            setMsg(null);
+                            setProviderOpen(false);
+                          }}
+                        >
+                          <div className="flex flex-1 items-center gap-2">
+                            <span>{p.displayName}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({AUTH_TYPE[p.id] === "oauth" ? "OAuth" : "key"})
+                            </span>
+                            {p.configured ? (
+                              <Badge variant="secondary" className="text-[10px] px-1 py-0">✓</Badge>
+                            ) : null}
+                            <span className="text-xs text-muted-foreground ml-auto">{p.modelCount} models</span>
+                          </div>
+                          <CheckIcon
+                            className={`ml-auto size-3.5 shrink-0 ${
+                              effectiveSelected === p.id ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {current?.configured ? (
