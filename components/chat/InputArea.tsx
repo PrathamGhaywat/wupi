@@ -45,14 +45,9 @@ export function InputArea({
   centered,
 }: InputAreaProps) {
   const [value, setValue] = useState("");
-  const [greeting, setGreeting] = useState(GREETINGS[0]);
-  const [mood, setMood] = useState(MOODS[0]);
+  const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
+  const [mood] = useState(() => MOODS[Math.floor(Math.random() * MOODS.length)]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    setGreeting(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
-    setMood(MOODS[Math.floor(Math.random() * MOODS.length)]);
-  }, []);
 
   useEffect(() => {
     if (centered && textareaRef.current) {
