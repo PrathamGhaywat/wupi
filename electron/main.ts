@@ -68,7 +68,7 @@ function initAgent(): void {
   settingsManager = SettingsManager.create(os.homedir(), WUPI_DIR);
 }
 
-async function ensureSession(): Promise<AgentSession> {
+async function ensureSession(sessionManager?: SessionManager): Promise<AgentSession> {
   if (session) return session;
   if (sessionPromise) return sessionPromise;
   sessionPromise = (async () => {
@@ -78,7 +78,7 @@ async function ensureSession(): Promise<AgentSession> {
       authStorage,
       modelRegistry,
       settingsManager,
-      sessionManager: SessionManager.inMemory(os.homedir()),
+      sessionManager: sessionManager ?? SessionManager.create(os.homedir(), path.join(WUPI_DIR, "sessions")),
     });
     session = s;
     unsubscribe = s.subscribe((event) => {
@@ -299,7 +299,8 @@ function createWindow() {
     pushModels();
     setTimeout(pushModels, 1500);
     try {
-      await ensureSession();
+      const cwd = os.homedir();
+      await ensureSession(SessionManager.continueRecent(cwd, path.join(WUPI_DIR, "sessions")));
     } catch (err) {
       console.error("Failed to init session:", err);
     }
