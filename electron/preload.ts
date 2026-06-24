@@ -21,6 +21,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   configGetDir: () => ipcRenderer.invoke("config:getDir"),
 
+  sessionList: () => ipcRenderer.invoke("session:list"),
+  sessionCreate: () => ipcRenderer.invoke("session:create"),
+  sessionSwitch: (sessionFile: string) =>
+    ipcRenderer.invoke("session:switch", sessionFile),
+  sessionDelete: (sessionFile: string) =>
+    ipcRenderer.invoke("session:delete", sessionFile),
+  sessionRename: (sessionFile: string, title: string) =>
+    ipcRenderer.invoke("session:rename", sessionFile, title),
+
   onAgentEvent: (cb: (event: unknown) => void) =>
     ipcRenderer.on("agent:event", (_e, event) => cb(event)),
   onAgentState: (cb: (state: unknown) => void) =>

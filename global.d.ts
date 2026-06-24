@@ -8,6 +8,14 @@ import type {
 export {};
 
 declare global {
+  interface WupiSessionInfo {
+    sessionFile: string;
+    title: string;
+    createdAt: number;
+    messageCount: number;
+    modelName?: string;
+  }
+
   interface WupiAuthLoginEvent {
     type: string;
     [key: string]: unknown;
@@ -39,6 +47,12 @@ declare global {
       ) => Promise<{ ok: boolean }>;
 
       configGetDir: () => Promise<string>;
+
+      sessionList: () => Promise<WupiSessionInfo[]>;
+      sessionCreate: () => Promise<{ ok: boolean; error?: string }>;
+      sessionSwitch: (sessionFile: string) => Promise<{ ok: boolean; error?: string }>;
+      sessionDelete: (sessionFile: string) => Promise<{ ok: boolean }>;
+      sessionRename: (sessionFile: string, title: string) => Promise<{ ok: boolean; error?: string }>;
 
       onAgentEvent: (cb: (event: WupiAgentEvent) => void) => void;
       onAgentState: (cb: (state: WupiSessionState) => void) => void;
