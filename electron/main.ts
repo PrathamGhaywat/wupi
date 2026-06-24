@@ -451,24 +451,33 @@ function registerIpc(): void {
 
   ipcMain.handle("session:list", async () => {
     try {
-      const cwd = os.homedir();
       const sessionsDir = path.join(WUPI_DIR, "sessions");
-      const list = await SessionManager.listAll(cwd);
-      const sessions = list.map((info: { path: string }) => {
-        const sm = SessionManager.open(info.path);
-        const entries = sm.getEntries();
-        const labels: Record<string, string> = {};
-        for (const entry of entries) {
-          const label = sm.getLabel(entry.id);
-          if (label) labels[entry.id] = label;
-        }
-        const firstEntry = entries[0] as unknown as { createdAt?: string; timestamp?: string } | undefined;
+      const list = await SessionManager.listAll(sessionsDir);
+      const sessions: {
+        sessionFile: string;
+        title: string;
+        createdAt: number;
+        messageCount: number;
+        modelName?: string;
+      }[] = list.map((info) => {
+        let modelName: string | undefined;
+        try {
+          const sm = SessionManager.open(info.path);
+          const entries = sm.getEntries();
+          const modelEntry = [...entries].reverse().find(
+            (e) => e.type === "model_change"
+          ) as { provider: string; modelId: string } | undefined;
+          if (modelEntry) {
+            const mi = modelRegistry.find(modelEntry.provider, modelEntry.modelId);
+            modelName = mi?.name ?? `${modelEntry.provider}/${modelEntry.modelId}`;
+          }
+        } catch {}
         return {
           sessionFile: info.path,
-          entries,
-          labels: Object.keys(labels).length > 0 ? labels : undefined,
-          createdAt: firstEntry ? (firstEntry.createdAt ?? firstEntry.timestamp) : undefined,
-          messageCount: entries.length,
+          title: info.name || info.firstMessage || "Untitled",
+          createdAt: info.created instanceof Date ? info.created.getTime() : Date.now(),
+          messageCount: info.messageCount,
+          modelName,
         };
       });
       return { ok: true, sessions };

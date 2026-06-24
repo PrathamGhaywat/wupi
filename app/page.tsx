@@ -42,6 +42,7 @@ export default function Home() {
   const [state, setState] = useState<WupiSessionState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [currentSessionFile, setCurrentSessionFile] = useState("");
   const [ready, setReady] = useState(false);
   const hasElectron = useSyncExternalStore(
     () => () => {},
@@ -195,6 +196,8 @@ export default function Home() {
           fetchModels();
           setSettingsOpen(true);
         }}
+        currentSessionFile={currentSessionFile}
+        onSessionSwitch={setCurrentSessionFile}
       />
 
       <SidebarInset className="flex flex-col overflow-hidden">

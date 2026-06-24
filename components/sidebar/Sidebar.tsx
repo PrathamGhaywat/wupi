@@ -18,10 +18,14 @@ import { ThemeToggle } from "./ThemeToggle";
 
 interface AppSidebarProps {
   onSettingsClick: () => void;
+  currentSessionFile?: string;
+  onSessionSwitch?: (sessionFile: string) => void;
 }
 
 export function AppSidebar({
   onSettingsClick,
+  currentSessionFile,
+  onSessionSwitch,
 }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -58,7 +62,10 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarGroupLabel className="text-[0.6875rem] tracking-wide uppercase text-sidebar-foreground/40 font-medium px-3 py-1.5">Conversations</SidebarGroupLabel>
           <SidebarGroupContent>
-            <ConversationList />
+            <ConversationList
+              currentSessionFile={currentSessionFile}
+              onSessionSwitch={onSessionSwitch}
+            />
           </SidebarGroupContent>
         </SidebarGroup>
 
