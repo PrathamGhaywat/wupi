@@ -449,6 +449,100 @@ function registerIpc(): void {
     }
   );
 
+  ipcMain.handle("session:list", async () => {
+    try {
+      const cwd = os.homedir();
+      const sessionsDir = path.join(WUPI_DIR, "sessions");
+      const list = await SessionManager.listAll(cwd);
+      const sessions = list.map((info: { path: string }) => {
+        const sm = SessionManager.open(info.path);
+        const entries = sm.getEntries();
+        const labels: Record<string, string> = {};
+        for (const entry of entries) {
+          const label = sm.getLabel(entry.id);
+          if (label) labels[entry.id] = label;
+        }
+        const firstEntry = entries[0] as unknown as { createdAt?: string; timestamp?: string } | undefined;
+        return {
+          sessionFile: info.path,
+          entries,
+          labels: Object.keys(labels).length > 0 ? labels : undefined,
+          createdAt: firstEntry ? (firstEntry.createdAt ?? firstEntry.timestamp) : undefined,
+          messageCount: entries.length,
+        };
+      });
+      return { ok: true, sessions };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcMain.handle("session:create", async () => {
+    try {
+      disposeAgent();
+      const sm = SessionManager.create(os.homedir(), path.join(WUPI_DIR, "sessions"));
+      const { session: s } = await createAgentSession({
+        cwd: os.homedir(),
+        agentDir: WUPI_DIR,
+        authStorage,
+        modelRegistry,
+        settingsManager,
+        sessionManager: sm,
+      });
+      session = s;
+      unsubscribe = s.subscribe((event) => { eventSink?.(event); });
+      pushModels();
+      await pushState();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcMain.handle("session:switch", async (_e, sessionFile: string) => {
+    try {
+      disposeAgent();
+      const sm = SessionManager.open(sessionFile);
+      const { session: s } = await createAgentSession({
+        cwd: os.homedir(),
+        agentDir: WUPI_DIR,
+        authStorage,
+        modelRegistry,
+        settingsManager,
+        sessionManager: sm,
+      });
+      session = s;
+      unsubscribe = s.subscribe((event) => { eventSink?.(event); });
+      pushModels();
+      await pushState();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcMain.handle("session:delete", async (_e, sessionFile: string) => {
+    try {
+      fs.unlinkSync(sessionFile);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcMain.handle("session:rename", async (_e, sessionFile: string, title: string) => {
+    try {
+      const sm = SessionManager.open(sessionFile);
+      const entries = sm.getEntries();
+      if (entries.length > 0) {
+        sm.appendLabelChange(entries[0].id, title);
+      }
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
   ipcMain.handle("config:getDir", () => WUPI_DIR);
 }
 
