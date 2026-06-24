@@ -202,7 +202,7 @@ export default function SettingsModal({ providers, onClose, onChanged }: Setting
                   variant="outline"
                   role="combobox"
                   aria-expanded={providerOpen}
-                  className="w-full justify-between rounded-none px-3 font-normal"
+                  className="w-full justify-between rounded-xl px-3 font-normal shadow-sm"
                 >
                   <span className="truncate">
                     {current?.displayName ?? "Select a provider…"}
@@ -210,7 +210,7 @@ export default function SettingsModal({ providers, onClose, onChanged }: Setting
                   <ChevronsUpDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] rounded-xl p-0 shadow-elevated" align="start">
                 <Command>
                   <CommandInput placeholder="Search providers…" />
                   <CommandList>
@@ -253,7 +253,7 @@ export default function SettingsModal({ providers, onClose, onChanged }: Setting
           </div>
 
           {current?.configured ? (
-            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 px-3.5 py-2.5 text-xs leading-relaxed text-emerald-700 dark:text-emerald-400">
               Configured
               {current.status.source ? ` · source: ${current.status.source}` : ""}
             </div>
@@ -266,12 +266,12 @@ export default function SettingsModal({ providers, onClose, onChanged }: Setting
               onSubmitPrompt={submitPrompt} onSubmitSelect={submitSelect} onSubmitManualCode={submitManualCode} />
           ) : effectiveAuthType === "oauth" ? (
             <div className="flex flex-col gap-3">
-              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+              <div className="rounded-xl border border-amber-200/60 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/30 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
                 This provider uses OAuth. You can also set{" "}
                 <code className="font-mono">{ENV_HINT[effectiveSelected] || "TOKEN"}=your_token</code>{" "}
                 in <code className="font-mono">{configDir || "~/.wupi"}/.env</code> and restart instead.
               </div>
-              <Button onClick={startLogin}>Sign in with browser</Button>
+              <Button onClick={startLogin} className="w-full">Sign in with browser</Button>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -292,7 +292,7 @@ export default function SettingsModal({ providers, onClose, onChanged }: Setting
               />
 
               {msg ? (
-                <div className={`rounded px-3 py-2 text-xs ${
+                <div className={`rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${
                   msg.kind === "ok"
                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
                     : "bg-destructive/10 text-destructive"
@@ -306,7 +306,7 @@ export default function SettingsModal({ providers, onClose, onChanged }: Setting
                   {busy ? "Saving…" : "Save key"}
                 </Button>
                 {current?.configured ? (
-                  <Button variant="outline" onClick={remove} disabled={busy} className="text-destructive">
+                  <Button variant="outline" onClick={remove} disabled={busy}>
                     Remove
                   </Button>
                 ) : null}
@@ -321,7 +321,7 @@ export default function SettingsModal({ providers, onClose, onChanged }: Setting
 
 function CancelButton({ onClick, label }: { onClick: () => void; label?: string }) {
   return (
-    <Button variant="outline" className="w-full" onClick={onClick}>
+    <Button variant="outline" className="w-full text-sm" onClick={onClick}>
       {label ?? "Cancel"}
     </Button>
   );
@@ -339,8 +339,8 @@ function LoginFlow({
   if (step.kind === "waiting" || step.kind === "progress") {
     return (
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="inline-block size-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+        <div className="flex items-center gap-2.5 rounded-xl bg-muted/50 px-3.5 py-3 text-sm text-muted-foreground">
+          <span className="inline-block size-3.5 animate-spin rounded-full border-[2.5px] border-current border-t-transparent" />
           {step.kind === "progress" ? step.message : "Starting login…"}
         </div>
         <CancelButton onClick={onCancel} />
@@ -351,7 +351,7 @@ function LoginFlow({
   if (step.kind === "done") {
     return (
       <div className="flex flex-col gap-3">
-        <div className={`rounded-lg px-3 py-2 text-xs ${
+        <div className={`rounded-xl px-3.5 py-3 text-xs leading-relaxed ${
           step.ok
             ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
             : "bg-destructive/10 text-destructive"
@@ -359,11 +359,11 @@ function LoginFlow({
           {step.ok ? "Authorized!" : (
             <>
               <p className="mb-1 font-medium">Authorization failed</p>
-              <p className="font-mono">{step.error ?? "Unknown error"}</p>
+              <p className="font-mono text-[0.6875rem]">{step.error ?? "Unknown error"}</p>
             </>
           )}
         </div>
-        <Button onClick={onDismiss}>
+        <Button onClick={onDismiss} className="w-full">
           {step.ok ? "Done" : "Try again"}
         </Button>
       </div>
@@ -373,16 +373,16 @@ function LoginFlow({
   if (step.kind === "deviceCode") {
     return (
       <div className="flex flex-col gap-3">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 text-center">
-          <p className="mb-1 text-xs text-amber-800 dark:text-amber-300">
+        <div className="rounded-2xl border border-amber-200/60 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/30 px-4 py-4 text-center">
+          <p className="mb-2 text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
             Open the browser that just launched and enter this code:
           </p>
-          <p className="select-all text-2xl font-bold tracking-widest text-amber-900 dark:text-amber-200">
+          <p className="select-all text-2xl font-bold tracking-[0.15em] text-amber-900 dark:text-amber-200">
             {step.userCode}
           </p>
-          <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{step.verificationUri}</p>
+          <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400 font-mono">{step.verificationUri}</p>
         </div>
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-xs text-muted-foreground text-center leading-relaxed">
           Waiting for authorization
           {step.expiresInSeconds ? ` (expires in ${Math.round(step.expiresInSeconds / 60)} min)` : ""}…
         </p>
@@ -394,13 +394,13 @@ function LoginFlow({
   if (step.kind === "authUrl") {
     return (
       <div className="flex flex-col gap-3">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
-          <p className="text-xs text-amber-800 dark:text-amber-300">
+        <div className="rounded-xl border border-amber-200/60 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/30 px-3.5 py-3">
+          <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
             A browser window opened for authorization.
             {step.instructions ? ` ${step.instructions}` : ""}
           </p>
         </div>
-        <p className="text-xs text-muted-foreground text-center">Waiting for authorization…</p>
+        <p className="text-xs text-muted-foreground text-center leading-relaxed">Waiting for authorization…</p>
         <CancelButton onClick={onCancel} />
       </div>
     );
@@ -409,7 +409,7 @@ function LoginFlow({
   if (step.kind === "prompt") {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-xs text-muted-foreground">{step.message}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">{step.message}</p>
         <Input
           placeholder={step.placeholder ?? ""}
           value={promptValue}
@@ -428,10 +428,10 @@ function LoginFlow({
 
   if (step.kind === "select") {
     return (
-      <div className="flex flex-col gap-3">
-        <p className="text-xs text-muted-foreground">{step.message}</p>
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-muted-foreground leading-relaxed">{step.message}</p>
         {step.options.map((o) => (
-          <Button key={o.id} variant="outline" className="w-full justify-start" onClick={() => onSubmitSelect(o.id)}>
+          <Button key={o.id} variant="outline" className="w-full justify-start text-sm font-normal" onClick={() => onSubmitSelect(o.id)}>
             {o.label}
           </Button>
         ))}
@@ -443,7 +443,7 @@ function LoginFlow({
   if (step.kind === "manualCode") {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-xs text-muted-foreground">Enter the code from the browser:</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">Enter the code from the browser:</p>
         <Input
           className="font-mono"
           placeholder="Paste code…"

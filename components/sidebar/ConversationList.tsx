@@ -20,7 +20,8 @@ export function ConversationList() {
       </SidebarMenuItem>
 
       {conversations.length === 0 ? (
-        <div className="px-3 py-4 text-center text-sm text-sidebar-foreground/60">
+        <div className="px-3 py-6 text-center text-sm text-sidebar-foreground/40 leading-relaxed group-data-[collapsible=icon]:hidden">
+          <span className="block text-lg mb-1">💬</span>
           No conversations yet
         </div>
       ) : (

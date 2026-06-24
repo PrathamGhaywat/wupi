@@ -4,8 +4,7 @@ import { useRef, useEffect, useState, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { MessageBubble, StreamingBubble } from "@/components/chat/MessageBubble";
-import { DynamicSlogan } from "@/components/header/DynamicSlogan";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { useStreamingSnapshot } from "@/lib/streaming-store";
 import type { WupiSessionState } from "@/app/types";
 
@@ -14,6 +13,7 @@ interface ChatAreaProps {
   ready: boolean;
   hasModel: boolean;
   hasElectron: boolean;
+  hasMessages: boolean;
   error: string | null;
 }
 
@@ -22,6 +22,7 @@ export const ChatArea = memo(function ChatArea({
   ready,
   hasModel,
   hasElectron,
+  hasMessages,
   error,
 }: ChatAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -57,6 +58,8 @@ export const ChatArea = memo(function ChatArea({
     snapshot.thinking ||
     Object.keys(snapshot.activeTools).length > 0;
 
+  if (!hasMessages && !snapshot.isStreaming) return null;
+
   return (
     <div className="flex-1 relative flex flex-col min-h-0">
       <div
@@ -64,37 +67,31 @@ export const ChatArea = memo(function ChatArea({
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto"
       >
-        <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
+        <div className="mx-auto max-w-3xl flex flex-col gap-4 px-4 py-6">
           {!hasElectron ? (
-            <div className="mx-auto mt-10 max-w-md text-center text-sm text-muted-foreground">
-              Wupi must run inside Electron. Start the app with <code>bun run dev</code>.
+            <div className="mx-auto mt-10 max-w-md text-center text-sm text-muted-foreground leading-relaxed">
+              Wupi must run inside Electron. Start the app with <code className="text-foreground">bun run dev</code>.
             </div>
           ) : null}
 
           {ready && !hasModel && hasElectron ? (
-            <Alert className="border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+            <Alert variant="default">
+              <Sparkles className="size-4 text-amber-500" />
               <AlertTitle>No model configured</AlertTitle>
               <AlertDescription>
-                Open <strong>Settings</strong> to add an API key for a provider
+                Open <strong className="text-foreground font-medium">Settings</strong> to add an API key for a provider
                 (Anthropic, OpenAI, Google, …), then pick a model.
               </AlertDescription>
             </Alert>
           ) : null}
 
-          {hasElectron && hasModel && (state?.messages.length ?? 0) === 0 && !snapshot.isStreaming ? (
-            <div className="flex flex-col items-center justify-center min-h-[300px] text-center">
-              <div className="mb-4 text-6xl">🜂</div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Wupi</h2>
-              <DynamicSlogan />
-              <p className="mt-4 text-sm text-muted-foreground max-w-md">
-                Your personal AI agent. Ask me anything about your code, projects, or development workflow.
-              </p>
+          {state && state.messages.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {state.messages.map((m, i) => (
+                <MessageBubble key={i} message={m} />
+              ))}
             </div>
           ) : null}
-
-          {state?.messages.map((m, i) => (
-            <MessageBubble key={i} message={m} />
-          ))}
 
           {hasStreamingContent ? (
             <StreamingBubble
@@ -110,7 +107,7 @@ export const ChatArea = memo(function ChatArea({
         <Button
           variant="secondary"
           size="sm"
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-md"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-elevated hover:shadow-elevated"
           onClick={() => scrollToBottom(true)}
           aria-label="Scroll to bottom"
         >
@@ -119,7 +116,7 @@ export const ChatArea = memo(function ChatArea({
       ) : null}
 
       {error ? (
-        <div className="mx-4 mb-2 rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <div className="mx-4 mb-2 rounded-xl bg-destructive/10 px-4 py-2.5 text-xs text-destructive leading-relaxed">
           {error}
         </div>
       ) : null}

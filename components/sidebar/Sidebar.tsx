@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,44 +11,32 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Settings, MessageSquare, History, Plus } from "lucide-react";
+import { Settings, MessageSquare, History } from "lucide-react";
 import { ConversationList } from "./ConversationList";
-import { ModelPicker } from "./ModelPicker";
 import { ThemeToggle } from "./ThemeToggle";
-import type { WupiModelInfo } from "@/app/types";
 
 interface AppSidebarProps {
-  models: WupiModelInfo[];
-  currentModel: string;
-  onModelChange: (provider: string, modelId: string) => void;
-  disabled: boolean;
   onSettingsClick: () => void;
 }
 
 export function AppSidebar({
-  models,
-  currentModel,
-  onModelChange,
-  disabled,
   onSettingsClick,
 }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2" data-sidebar-item>
-          <SidebarTrigger className="size-8" />
-          <span className="font-semibold text-lg text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+      <SidebarHeader className="px-4 pt-4 pb-2 group-data-[collapsible=icon]:p-2">
+        <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center" data-sidebar-item>
+          <SidebarTrigger className="size-8 [&_svg]:size-4" />
+          <span className="font-semibold text-base tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden">
             Wupi
           </span>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="gap-0">
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[0.6875rem] tracking-wide uppercase text-sidebar-foreground/40 font-medium px-3 py-1.5">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -69,21 +56,7 @@ export function AppSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Models</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <ModelPicker
-              models={models}
-              currentModel={currentModel}
-              onModelChange={onModelChange}
-              disabled={disabled}
-            />
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Conversations</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[0.6875rem] tracking-wide uppercase text-sidebar-foreground/40 font-medium px-3 py-1.5">Conversations</SidebarGroupLabel>
           <SidebarGroupContent>
             <ConversationList />
           </SidebarGroupContent>
@@ -92,7 +65,7 @@ export function AppSidebar({
         <div className="flex-1" />
 
         <SidebarGroup className="mt-auto">
-          <SidebarGroupContent className="flex flex-col gap-2 px-3 pb-4">
+          <SidebarGroupContent className="flex flex-col pb-4">
             <ThemeToggle />
             <SidebarMenu>
               <SidebarMenuItem>

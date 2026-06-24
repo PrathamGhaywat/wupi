@@ -39,7 +39,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider delayDuration={0}>
-            <SidebarProvider defaultOpen={true}>
+            <SidebarProvider defaultOpen={false}>
               {children}
             </SidebarProvider>
           </TooltipProvider>

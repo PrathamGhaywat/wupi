@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/sidebar/Sidebar";
@@ -8,6 +8,7 @@ import { ChatArea } from "@/components/chat/ChatArea";
 import { InputArea } from "@/components/chat/InputArea";
 import { AppLoader } from "@/components/loader/AppLoader";
 import { DynamicSlogan } from "@/components/header/DynamicSlogan";
+import { cn } from "@/lib/utils";
 import SettingsModal from "./SettingsModal";
 import {
   dispatchStreamingEvent,
@@ -76,6 +77,7 @@ export default function Home() {
   }, []);
 
   const hasModel = !!state?.model;
+  const hasMessages = (state?.messages.length ?? 0) > 0;
 
   async function send(text: string) {
     if (!text.trim() || isStreaming) return;
@@ -132,11 +134,6 @@ export default function Home() {
       .catch((e) => console.error("agentGetModels failed:", e));
   }
 
-  const configuredModels = useMemo(
-    () => models.filter((m) => m.configured),
-    [models]
-  );
-
   const currentModelValue = state?.model
     ? `${state.model.provider}/${state.model.id}`
     : "";
@@ -144,10 +141,6 @@ export default function Home() {
   return (
     <>
       <AppSidebar
-        models={configuredModels}
-        currentModel={currentModelValue}
-        onModelChange={pickModel}
-        disabled={isStreaming}
         onSettingsClick={() => {
           fetchModels();
           setSettingsOpen(true);
@@ -155,35 +148,22 @@ export default function Home() {
       />
 
       <SidebarInset className="flex flex-col">
-        <header className="flex items-center gap-3 border-b border-border px-4 py-2">
+        <header
+          className={cn(
+            "flex items-center gap-3 border-b border-border/60 bg-background px-4 transition-all duration-300",
+            hasMessages ? "h-12" : "h-0 overflow-hidden border-transparent"
+          )}
+        >
           <SidebarTrigger className="md:hidden" />
-          <div className="hidden sm:flex items-center gap-2 font-semibold">
-            <span className="text-lg">🜂</span>
-            <span className="text-foreground">Wupi</span>
+          <div className="hidden sm:flex items-center gap-2.5 font-medium">
+            <span className="text-base">🜂</span>
+            <span className="text-foreground tracking-tight">Wupi</span>
           </div>
-          <Separator orientation="vertical" className="hidden sm:block h-5" />
+          <Separator orientation="vertical" className="hidden sm:block h-4" />
           <div className="hidden sm:flex items-center">
             <DynamicSlogan />
           </div>
           <div className="flex-1" />
-          <select
-            className="max-w-[240px] truncate rounded-lg border border-input bg-background px-2 py-1 text-sm text-foreground"
-            value={currentModelValue}
-            onChange={(e) => {
-              const [provider, ...rest] = e.target.value.split("/");
-              pickModel(provider, rest.join("/"));
-            }}
-            disabled={isStreaming}
-          >
-            <option value="">
-              {hasModel ? state?.model?.name : "Select a model…"}
-            </option>
-            {configuredModels.map((m) => (
-                <option key={`${m.provider}/${m.id}`} value={`${m.provider}/${m.id}`}>
-                  [{m.providerDisplayName}] {m.name}
-                </option>
-              ))}
-          </select>
         </header>
 
         <ChatArea
@@ -192,14 +172,19 @@ export default function Home() {
           hasModel={hasModel}
           hasElectron={hasElectron}
           error={error}
+          hasMessages={hasMessages}
         />
 
         <InputArea
           isStreaming={isStreaming}
           hasModel={hasModel}
           hasElectron={hasElectron}
+          models={models}
+          currentModel={currentModelValue}
+          onModelChange={pickModel}
           onSend={send}
           onAbort={abort}
+          centered={!hasMessages}
         />
       </SidebarInset>
 

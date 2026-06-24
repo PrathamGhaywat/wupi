@@ -23,23 +23,31 @@ function AssistantBlocks({ content }: { content: WupiMessageContent[] }) {
   return content.map((b, i) => {
     if (b.type === "text") {
       return (
-        <div key={i} className="break-words">
+        <div key={i} className="break-words leading-relaxed">
           <Markdown>{b.text}</Markdown>
         </div>
       );
     }
     if (b.type === "thinking") {
       return (
-        <details key={i} className="my-1 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
-          <summary className="cursor-pointer font-medium">thinking</summary>
-          <div className="mt-1 whitespace-pre-wrap">{b.thinking}</div>
+        <details key={i} className="my-2 overflow-hidden rounded-xl border border-border/50 bg-secondary/50 px-4 py-2.5 text-xs text-muted-foreground">
+          <summary className="cursor-pointer text-[0.6875rem] font-medium tracking-wide text-muted-foreground/80 select-none">
+            {b.thinking.length > 80 ? "Thinking" : "Thought"}
+          </summary>
+          <div className="mt-2 whitespace-pre-wrap leading-relaxed border-t border-border/30 pt-2">
+            {b.thinking}
+          </div>
         </details>
       );
     }
     if (b.type === "toolCall") {
       return (
-        <div key={i} className="my-1 rounded-md bg-muted px-3 py-1.5 font-mono text-xs text-muted-foreground">
-          ⟶ {b.name}({Object.keys(b.arguments).length > 0 ? JSON.stringify(b.arguments) : ""})
+        <div key={i} className="my-1.5 inline-flex items-center gap-1.5 rounded-lg bg-secondary/70 px-2.5 py-1 font-mono text-[0.6875rem] text-muted-foreground">
+          <span className="text-foreground/40">→</span>
+          {b.name}
+          {Object.keys(b.arguments).length > 0 ? (
+            <span className="text-foreground/30">(…)</span>
+          ) : null}
         </div>
       );
     }
@@ -55,7 +63,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-sm bg-primary px-4 py-2 text-sm text-primary-foreground">
+        <div className="max-w-[75%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
           {userText(message)}
         </div>
       </div>
@@ -66,14 +74,20 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     const am = message as WupiAssistantMessage;
     return (
       <div className="flex justify-start">
-        <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-4 py-2 text-sm text-foreground">
+        <div className="max-w-[75%] rounded-2xl rounded-bl-md bg-card px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-sm ring-1 ring-border/40">
           {am.errorMessage ? (
-            <div className="text-destructive">Error: {am.errorMessage}</div>
+            <div className="mb-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              Error: {am.errorMessage}
+            </div>
           ) : null}
           <AssistantBlocks content={am.content} />
           {am.usage ? (
-            <div className="mt-1 text-[10px] text-muted-foreground">
-              {am.provider}/{am.model} · in {am.usage.input} / out {am.usage.output}
+            <div className="mt-2 flex items-center gap-2 border-t border-border/30 pt-2 text-[0.625rem] text-muted-foreground/70">
+              <span>{am.provider}/{am.model}</span>
+              <span className="text-border/50">·</span>
+              <span>in {am.usage.input}</span>
+              <span className="text-border/50">·</span>
+              <span>out {am.usage.output}</span>
             </div>
           ) : null}
         </div>
@@ -95,18 +109,20 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       <div className="flex justify-start">
         <div
           className={cn(
-            "max-w-[80%] rounded-lg px-3 py-1 font-mono text-xs",
+            "max-w-[75%] rounded-xl px-3 py-2 font-mono text-xs leading-relaxed",
             tr.isError
-              ? "bg-destructive/10 text-destructive"
-              : "bg-muted text-muted-foreground"
+              ? "bg-destructive/8 text-destructive"
+              : "bg-secondary/50 text-muted-foreground"
           )}
         >
-          <div className="mb-0.5 font-sans font-medium">
-            {tr.isError ? "✕ " : "✓ "}
+          <div className="mb-0.5 flex items-center gap-1.5 font-sans text-[0.6875rem] font-medium">
+            <span className={tr.isError ? "text-destructive" : "text-emerald-500"}>
+              {tr.isError ? "✕" : "✓"}
+            </span>
             {tr.toolName}
           </div>
           {text ? (
-            <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words">{text}</pre>
+            <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-[0.6875rem]">{text}</pre>
           ) : null}
         </div>
       </div>
@@ -124,20 +140,22 @@ interface StreamingBubbleProps {
 
 export const StreamingBubble = memo(function StreamingBubble({ text, thinking, tools }: StreamingBubbleProps) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {thinking ? (
         <div className="flex justify-start">
-          <div className="max-w-[80%] rounded-2xl rounded-bl-sm border border-border px-3 py-1 text-xs text-muted-foreground">
+          <div className="max-w-[75%] overflow-hidden rounded-2xl rounded-bl-md border border-border/50 bg-card/50 px-4 py-2.5 text-xs text-muted-foreground shadow-sm">
             <details>
-              <summary className="cursor-pointer font-medium">thinking…</summary>
-              <div className="mt-1 whitespace-pre-wrap">{thinking}</div>
+              <summary className="cursor-pointer text-[0.6875rem] font-medium tracking-wide text-muted-foreground/80 select-none">
+                thinking…
+              </summary>
+              <div className="mt-2 whitespace-pre-wrap leading-relaxed border-t border-border/30 pt-2">{thinking}</div>
             </details>
           </div>
         </div>
       ) : null}
 
       {Object.keys(tools).length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {Object.entries(tools).map(([id, t]) => (
             <ToolChip key={id} name={t.name} done={t.done} isError={t.isError} />
           ))}
@@ -146,9 +164,9 @@ export const StreamingBubble = memo(function StreamingBubble({ text, thinking, t
 
       {text ? (
         <div className="flex justify-start">
-          <div className="max-w-[80%] break-words rounded-2xl rounded-bl-sm bg-muted px-4 py-2 text-sm text-foreground">
+          <div className="max-w-[75%] break-words rounded-2xl rounded-bl-md bg-card px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-sm ring-1 ring-border/40">
             <Markdown>{text}</Markdown>
-            <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-foreground/50 align-middle rounded-sm" />
+            <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse bg-foreground/60 align-middle rounded-full" />
           </div>
         </div>
       ) : null}

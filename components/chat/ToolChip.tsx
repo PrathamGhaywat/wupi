@@ -14,7 +14,7 @@ export function ToolChip({ name, done, isError }: ToolChipProps) {
     <Badge
       variant={isError ? "destructive" : done ? "secondary" : "default"}
       className={cn(
-        "text-xs font-mono gap-1",
+        "font-mono text-[0.6875rem] gap-1.5 rounded-lg px-2.5 py-0.5",
         !done && !isError && "animate-pulse"
       )}
     >

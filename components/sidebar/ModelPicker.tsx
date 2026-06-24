@@ -60,7 +60,7 @@ export function ModelPicker({ models, currentModel, onModelChange, disabled }: M
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="w-full justify-between rounded-none px-3 font-normal"
+          className="w-full justify-between rounded-xl px-3 font-normal shadow-sm"
         >
           <span className="truncate">
             {currentModelObj
@@ -70,7 +70,7 @@ export function ModelPicker({ models, currentModel, onModelChange, disabled }: M
           <ChevronsUpDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] rounded-xl p-0 shadow-elevated" align="start">
         <Command>
           <CommandInput placeholder="Search models…" />
           <CommandList>

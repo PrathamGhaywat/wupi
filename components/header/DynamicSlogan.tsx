@@ -40,7 +40,7 @@ export function DynamicSlogan() {
   if (!slogan) return null;
 
   return (
-    <p className="text-sm text-muted-foreground animate-in fade-in duration-700">
+    <p className="text-sm text-muted-foreground/70 leading-relaxed animate-in fade-in duration-700">
       {slogan}
     </p>
   );
