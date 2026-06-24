@@ -84,3 +84,4 @@ The repo's empty `.agents/` dir is the project-local home for **pi** skills (the
 - `pi-docs-md/sdk.md` — the primary reference: `createAgentSession`, all options (model, tools, custom tools, extensions, skills, context files, sessions, settings), the runtime API, run modes, full export list.
 - `pi-docs-md/rpc.md` — every command, response, and event type. The event taxonomy here ALSO applies to the in-process SDK's `subscribe()` stream (e.g. `message_update` deltas, `tool_execution_*`, `queue_update`, `compaction_*`).
 - `pi-docs-md/json.md` — compact reference for the event/message type unions.
+- `pi-docs-md/pi-ai.md` - how to use cool features from pi-ai
