@@ -224,7 +224,7 @@ export function InputArea({
               aria-label="Chat input"
             />
 
-            <div className="absolute bottom-2 right-2">
+            <div className="absolute top-1/2 -translate-y-1/2 right-2">
               {isStreaming ? (
                 <Button
                   variant="destructive"

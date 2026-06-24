@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useEffect, useState, memo } from "react";
-import { Button } from "@/components/ui/button";
+import { memo } from "react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { MessageBubble, StreamingBubble } from "@/components/chat/MessageBubble";
 import { ChevronDown, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import { useStreamingSnapshot } from "@/lib/streaming-store";
 import type { WupiSessionState } from "@/app/types";
 
@@ -25,52 +26,38 @@ export const ChatArea = memo(function ChatArea({
   hasMessages,
   error,
 }: ChatAreaProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const [isAtBottom, setIsAtBottom] = useState(true);
   const snapshot = useStreamingSnapshot();
+  const messagesLength = state?.messages.length ?? 0;
+  const toolsKeys = Object.keys(snapshot.activeTools).length;
 
-  const scrollToBottom = (smooth = true) => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: smooth ? "smooth" : "auto",
-    });
-  };
-
-  useEffect(() => {
-    if (!isAtBottom) return;
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: snapshot.isStreaming ? "auto" : "smooth",
-    });
-  }, [snapshot.text, snapshot.thinking, snapshot.activeTools, state, isAtBottom, snapshot.isStreaming]);
-
-  const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-    setIsAtBottom(atBottom);
-    setShowScrollButton(!atBottom);
-  };
+  const { scrollRef, handleScroll, showScrollButton, onScrollButtonClick } =
+    useAutoScroll([
+      messagesLength,
+      snapshot.text,
+      snapshot.thinking,
+      toolsKeys,
+      snapshot.isStreaming,
+    ]);
 
   const hasStreamingContent =
     snapshot.text ||
     snapshot.thinking ||
-    Object.keys(snapshot.activeTools).length > 0;
+    toolsKeys > 0;
 
   if (!hasMessages && !snapshot.isStreaming) return null;
 
   return (
-    <div className="flex-1 relative flex flex-col min-h-0">
+    <div className="min-h-0 flex-1 relative">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto"
+        className="absolute inset-0 overflow-y-auto"
       >
         <div className="mx-auto max-w-3xl flex flex-col gap-4 px-4 py-6">
           {!hasElectron ? (
             <div className="mx-auto mt-10 max-w-md text-center text-sm text-muted-foreground leading-relaxed">
-              Wupi must run inside Electron. Start the app with <code className="text-foreground">bun run dev</code>.
+              Wupi must run inside Electron. Start the app with{" "}
+              <code className="text-foreground">bun run dev</code>.
             </div>
           ) : null}
 
@@ -79,8 +66,12 @@ export const ChatArea = memo(function ChatArea({
               <Sparkles className="size-4 text-amber-500" />
               <AlertTitle>No model configured</AlertTitle>
               <AlertDescription>
-                Open <strong className="text-foreground font-medium">Settings</strong> to add an API key for a provider
-                (Anthropic, OpenAI, Google, …), then pick a model.
+                Open{" "}
+                <strong className="text-foreground font-medium">
+                  Settings
+                </strong>{" "}
+                to add an API key for a provider (Anthropic, OpenAI, Google,
+                …), then pick a model.
               </AlertDescription>
             </Alert>
           ) : null}
@@ -100,6 +91,12 @@ export const ChatArea = memo(function ChatArea({
               tools={snapshot.activeTools}
             />
           ) : null}
+
+          {error ? (
+            <div className="rounded-xl bg-destructive/10 px-4 py-2.5 text-xs text-destructive leading-relaxed">
+              {error}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -107,18 +104,12 @@ export const ChatArea = memo(function ChatArea({
         <Button
           variant="secondary"
           size="sm"
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-elevated hover:shadow-elevated"
-          onClick={() => scrollToBottom(true)}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-elevated hover:shadow-elevated z-10"
+          onClick={onScrollButtonClick}
           aria-label="Scroll to bottom"
         >
           <ChevronDown className="size-4" />
         </Button>
-      ) : null}
-
-      {error ? (
-        <div className="mx-4 mb-2 rounded-xl bg-destructive/10 px-4 py-2.5 text-xs text-destructive leading-relaxed">
-          {error}
-        </div>
       ) : null}
     </div>
   );

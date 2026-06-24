@@ -147,7 +147,7 @@ export default function Home() {
         }}
       />
 
-      <SidebarInset className="flex flex-col">
+      <SidebarInset className="flex flex-col overflow-hidden">
         <header
           className={cn(
             "flex items-center gap-3 border-b border-border/60 bg-background px-4 transition-all duration-300",
